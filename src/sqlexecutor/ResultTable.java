@@ -24,6 +24,7 @@ public class ResultTable {
         table.setDefaultRenderer(String.class, new TableCellRenderer());
         table.setDefaultRenderer(Date.class, new TableCellRenderer());
         table.setDefaultRenderer(Number.class, new TableCellRenderer());
+        table.getTableHeader().setDefaultRenderer(new TableHeaderRenderer());
         statusLab = new JLabel();
 
         contentPane.add(new JScrollPane(table), BorderLayout.CENTER);
