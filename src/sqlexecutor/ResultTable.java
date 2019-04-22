@@ -3,6 +3,7 @@ package sqlexecutor;
 import javax.swing.*;
 import java.awt.*;
 import java.sql.ResultSet;
+import java.util.Date;
 
 public class ResultTable {
 
@@ -20,6 +21,9 @@ public class ResultTable {
         contentPane.setLayout(new BorderLayout(5, 5));
         tableModel = new TableModel();
         table = new JTable(tableModel);
+        table.setDefaultRenderer(String.class, new TableCellRenderer());
+        table.setDefaultRenderer(Date.class, new TableCellRenderer());
+        table.setDefaultRenderer(Number.class, new TableCellRenderer());
         statusLab = new JLabel();
 
         contentPane.add(new JScrollPane(table), BorderLayout.CENTER);
