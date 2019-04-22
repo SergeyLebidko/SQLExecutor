@@ -69,7 +69,13 @@ public class TableModel extends AbstractTableModel {
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         if (resultSet == null) return Object.class;
-        return Object.class;
+
+        ResultSetMetaData metaData;
+        try {
+            metaData = resultSet.getMetaData();
+            return  Class.forName(metaData.getColumnClassName(columnIndex + 1));
+        } catch (SQLException | ClassNotFoundException e) {return Object.class;}
+
     }
 
     public Object getValueAt(int rowIndex, int columnIndex) {
