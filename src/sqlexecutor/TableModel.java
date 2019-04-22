@@ -9,42 +9,46 @@ import java.util.ArrayList;
 public class TableModel extends AbstractTableModel {
 
     private ResultSet resultSet;
-
-    private ArrayList<ArrayList<Object>> m;
+    private Object[][] content;
+    private int rowCount, columnCount;
 
     public TableModel() {
-        m = new ArrayList<>();
+        content= new Object[0][0];
+        rowCount = 0;
+        columnCount = 0;
     }
 
     public void refresh(ResultSet rs) throws SQLException {
+        ArrayList<ArrayList<Object>> m = new ArrayList<>();
         resultSet = rs;
         m.clear();
         ArrayList<Object> row;
+        rowCount=0;
+        columnCount = resultSet.getMetaData().getColumnCount();
         while (rs.next()) {
             row = new ArrayList<>();
-            for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+            for (int i = 1; i <= columnCount; i++) {
                 row.add(rs.getObject(i));
             }
             m.add(row);
+            rowCount++;
         }
+
+        content=new Object[rowCount][columnCount];
+        for (int i=0; i<rowCount;i++){
+            for (int j=0;j<columnCount;j++){
+                content[i][j]=m.get(i).get(j);
+            }
+        }
+
         fireTableStructureChanged();
     }
 
     public int getRowCount() {
-        if (resultSet == null) return 0;
-        return m.size();
+        return rowCount;
     }
 
     public int getColumnCount() {
-        if (resultSet == null) return 0;
-
-        ResultSetMetaData metaData = null;
-        int columnCount = 0;
-        try {
-            metaData = resultSet.getMetaData();
-            columnCount = metaData.getColumnCount();
-        } catch (SQLException e) {
-        }
         return columnCount;
     }
 
@@ -70,12 +74,7 @@ public class TableModel extends AbstractTableModel {
 
     public Object getValueAt(int rowIndex, int columnIndex) {
         if (resultSet == null) return "";
-
-        Object result = null;
-        result = m.get(rowIndex).get(columnIndex);
-        if (result == null) result = "null";
-
-        return result;
+        return content[rowIndex][columnIndex]==null?"null":content[rowIndex][columnIndex];
     }
 
 }
