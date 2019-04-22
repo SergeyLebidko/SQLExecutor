@@ -1,4 +1,4 @@
-package sqlexecutor;
+package sqlexecutor.DataTable;
 
 import javax.swing.table.AbstractTableModel;
 import java.sql.ResultSet;

@@ -1,4 +1,4 @@
-package sqlexecutor;
+package sqlexecutor.DataTable;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;

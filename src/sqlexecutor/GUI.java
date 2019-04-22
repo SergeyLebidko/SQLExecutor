@@ -1,5 +1,7 @@
 package sqlexecutor;
 
+import sqlexecutor.DataTable.ResultTable;
+
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import java.awt.*;

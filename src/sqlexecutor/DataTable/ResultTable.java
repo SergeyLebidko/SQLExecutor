@@ -1,4 +1,6 @@
-package sqlexecutor;
+package sqlexecutor.DataTable;
+
+import sqlexecutor.DataBaseConnector;
 
 import javax.swing.*;
 import java.awt.*;
