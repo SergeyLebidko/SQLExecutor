@@ -172,22 +172,17 @@ public class GUI {
                     columnNames[i] = metaData.getColumnName(i + 1) + ":   " + columnClassNames[i];
                 }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frm, "Не удалось получить информацию о столбцах таблицы " + tableName + ". Ошибка: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(frm, "Не удалось получить информацию о столбцах таблицы " + tableName + ": " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             //Выводим запрос
-            String[] vals = showInputValuesDialog(columnNames, tableName);
-
-            //Если все поля пусты, то просто выходим без выполнения запроса
-            boolean found = false;
-            for (String s : vals) {
-                if (!s.equals("")) {
-                    found = true;
-                    break;
-                }
+            String[] vals = null;
+            try {
+                vals = showInputValuesDialog(columnNames, tableName);
+            } catch (Exception ex) {
+                return;
             }
-            if (!found) return;
 
             //Проигнорированные пользователем поля считаем равными NULL
             for (int i = 0; i < columnCount; i++) {
@@ -213,7 +208,7 @@ public class GUI {
             try {
                 dataBaseConnector.updateQuery(query);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frm, "Не удалось добавить строку. Ошибка: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(frm, "Не удалось добавить строку: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
                 return;
             }
         }
@@ -272,7 +267,7 @@ public class GUI {
         }
     };
 
-    private String[] showInputValuesDialog(String[] valNames, String title) {
+    private String[] showInputValuesDialog(String[] valNames, String title) throws Exception {
         int valCount = valNames.length;
         String[] result = new String[valCount];
         JTextField[] valFields = new JTextField[valCount];
@@ -288,14 +283,10 @@ public class GUI {
         }
 
         int answer = JOptionPane.showConfirmDialog(frm, dialogPane, title, JOptionPane.OK_CANCEL_OPTION);
-        System.out.println(answer);
+        if (answer != 0) throw new Exception();
 
         for (int i = 0; i < valCount; i++) {
-            if (answer == 0) {
-                result[i] = valFields[i].getText();
-            } else {
-                result[i] = "";
-            }
+            result[i] = valFields[i].getText();
         }
 
         return result;
