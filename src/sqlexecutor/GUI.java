@@ -57,7 +57,7 @@ public class GUI {
             contentPane.setLayout(new BorderLayout(5, 5));
             contentPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
             sqlQueryArea = new JTextArea();
-            executeQueryBtn = new JButton("Выполнить запрос");
+            executeQueryBtn = new JButton("Выполнить запрос на получение данных");
             sqlQueryArea.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
             JPanel topPane = new JPanel();
             topPane.setLayout(new BorderLayout(5, 5));
@@ -136,41 +136,60 @@ public class GUI {
             switch (tableName) {
                 case "Покупатели": {
                     queryTemplate="INSERT INTO CUSTOMERS VALUES (%s , '%s' , %s , %s )";
-                    valNames = new String[]{"cust_num", "company", "cust_rep", "credit_limit"};
+                    valNames = new String[]{"cust_num (Integer)", "company (String)", "cust_rep (Integer)", "credit_limit (BigDecimal)"};
                     break;
                 }
                 case "Офисы": {
                     queryTemplate="INSERT INTO OFFICES VALUES (%s , '%s' , '%s' , %s , %s , %s)";
-                    valNames = new String[]{"office", "city", "region", "mgr", "target", "sales"};
+                    valNames = new String[]{"office (Integer)", "city (String)", "region (String)", "mgr (Integer)", "target (BigDecimal)", "sales (BigDecimal)"};
                     break;
                 }
                 case "Заказы": {
                     queryTemplate="INSERT INTO ORDERS VALUES (%s , '%s' , %s , %s , '%s' , '%s' , %s , %s)";
-                    valNames = new String[]{"order_num", "order_date", "cust", "rep", "mfr", "product", "qty", "amount"};
+                    valNames = new String[]{"order_num (Integer)", "order_date (Date)", "cust (Integer)", "rep (Integer)", "mfr (String)", "product (String)", "qty (Integer)", "amount (BigDecimal)"};
                     break;
                 }
                 case "Товары": {
                     queryTemplate="INSERT INTO PRODUCTS VALUES ('%s' , '%s' , '%s' , %s , %s)";
-                    valNames = new String[]{"mfr_id", "product_id", "description", "price", "qty_on_hand"};
+                    valNames = new String[]{"mfr_id (String)", "product_id (String)", "description (String)", "price (BigDecimal)", "qty_on_hand (Integer)"};
                     break;
                 }
                 case "Служащие": {
                     queryTemplate="INSERT INTO PRODUCTS VALUES (%s , '%s' , %s , %s , '%s' , '%s' , %s , %s , %s)";
-                    valNames = new String[]{"empl_num", "name", "age", "rep_office", "title", "hire_date", "manager", "quota", "sales"};
+                    valNames = new String[]{"empl_num (Integer)", "name (String)", "age (Integer)", "rep_office (Integer)", "title (String)", "hire_date (Date)", "manager (Integer)", "quota (BigDecimal)", "sales (BigDecimal)"};
                 }
             }
 
+            //Выводим запрос
             String[] vals = showInputValuesDialog(valNames);
+
+            //Если все поля пусты, то просто выходим без выполнения запроса
+            boolean found=false;
+            for (String s: vals){
+                if (!s.equals("")){
+                    found=true;
+                    break;
+                }
+            }
+            if (!found)return;
+
+            //Проигнорированные пользователем поля считаем равными NULL
+            for (int i=0;i<vals.length;i++){
+                if (vals[i].equals("")){
+                    vals[i]="NULL";
+                }
+            }
+
+            //Формируем SQL-код запроса
             String query = String.format(queryTemplate, vals);
 
+            //Выполняем запрос
             try {
                 dataBaseConnector.updateQuery(query);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(frm, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-
-            System.out.println(query);
         }
     };
 
