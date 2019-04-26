@@ -25,11 +25,15 @@ public class GUI {
     private JButton executeQueryBtn;
 
     private JToolBar toolBar;
+
     private JButton showCustomers;
     private JButton showOffices;
     private JButton showOrders;
     private JButton showProducts;
     private JButton showSalesreps;
+
+    private JButton insertRowBtn;
+    private JComboBox<String> tablesList;
 
     public GUI() {
         frm = new JFrame("SQLExecutor");
@@ -75,16 +79,27 @@ public class GUI {
             showOrders = new JButton("Заказы");
             showProducts = new JButton("Товары");
             showSalesreps = new JButton("Служащие");
+
             toolBar.add(showCustomers);
-            toolBar.add(Box.createHorizontalStrut(5));
+            toolBar.add(Box.createHorizontalStrut(1));
             toolBar.add(showOffices);
-            toolBar.add(Box.createHorizontalStrut(5));
+            toolBar.add(Box.createHorizontalStrut(1));
             toolBar.add(showOrders);
-            toolBar.add(Box.createHorizontalStrut(5));
+            toolBar.add(Box.createHorizontalStrut(1));
             toolBar.add(showProducts);
-            toolBar.add(Box.createHorizontalStrut(5));
+            toolBar.add(Box.createHorizontalStrut(1));
             toolBar.add(showSalesreps);
-            topPane.add(toolBar);
+            toolBar.addSeparator();
+
+            insertRowBtn = new JButton("Добавить строку в таблицу");
+            tablesList = new JComboBox<>(new String[]{"Покупатели", "Офисы", "Заказы", "Товары", "Служащие"});
+            toolBar.add(insertRowBtn);
+            toolBar.add(Box.createHorizontalStrut(1));
+            toolBar.add(tablesList);
+
+            toolBar.add(Box.createHorizontalStrut(800));
+
+            topPane.add(toolBar, BorderLayout.NORTH);
 
             //Формируем главную таблицу
             mainTable = new ResultTable(dataBaseConnector);
@@ -99,6 +114,8 @@ public class GUI {
         showProducts.addActionListener(showBtnListener);
         showSalesreps.addActionListener(showBtnListener);
 
+        insertRowBtn.addActionListener(insertRowBtnListener);
+
         frm.setContentPane(contentPane);
         frm.setVisible(true);
     }
@@ -107,6 +124,53 @@ public class GUI {
         @Override
         public void actionPerformed(ActionEvent e) {
             mainTable.executeQuery(sqlQueryArea.getText());
+        }
+    };
+
+    private ActionListener insertRowBtnListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String tableName = (String) tablesList.getSelectedItem();
+            String queryTemplate = "";
+            String[] valNames = null;
+            switch (tableName) {
+                case "Покупатели": {
+                    queryTemplate="INSERT INTO CUSTOMERS VALUES (%s , '%s' , %s , %s )";
+                    valNames = new String[]{"cust_num", "company", "cust_rep", "credit_limit"};
+                    break;
+                }
+                case "Офисы": {
+                    queryTemplate="INSERT INTO OFFICES VALUES (%s , '%s' , '%s' , %s , %s , %s)";
+                    valNames = new String[]{"office", "city", "region", "mgr", "target", "sales"};
+                    break;
+                }
+                case "Заказы": {
+                    queryTemplate="INSERT INTO ORDERS VALUES (%s , '%s' , %s , %s , '%s' , '%s' , %s , %s)";
+                    valNames = new String[]{"order_num", "order_date", "cust", "rep", "mfr", "product", "qty", "amount"};
+                    break;
+                }
+                case "Товары": {
+                    queryTemplate="INSERT INTO PRODUCTS VALUES ('%s' , '%s' , '%s' , %s , %s)";
+                    valNames = new String[]{"mfr_id", "product_id", "description", "price", "qty_on_hand"};
+                    break;
+                }
+                case "Служащие": {
+                    queryTemplate="INSERT INTO PRODUCTS VALUES (%s , '%s' , %s , %s , '%s' , '%s' , %s , %s , %s)";
+                    valNames = new String[]{"empl_num", "name", "age", "rep_office", "title", "hire_date", "manager", "quota", "sales"};
+                }
+            }
+
+            String[] vals = showInputValuesDialog(valNames);
+            String query = String.format(queryTemplate, vals);
+
+            try {
+                dataBaseConnector.updateQuery(query);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frm, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            System.out.println(query);
         }
     };
 
@@ -146,6 +210,9 @@ public class GUI {
             dialog.setTitle(title);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setSize(new Dimension(WIDTH_DIALOG, HEIGHT_DIALOG));
+            int xPos = Toolkit.getDefaultToolkit().getScreenSize().width / 2 - WIDTH_DIALOG / 2;
+            int yPos = Toolkit.getDefaultToolkit().getScreenSize().height / 2 - HEIGHT_DIALOG / 2;
+            dialog.setLocation(xPos, yPos);
 
             JPanel dialogPane = new JPanel();
             dialogPane.setLayout(new BorderLayout(5, 5));
@@ -159,5 +226,29 @@ public class GUI {
             dialog.setVisible(true);
         }
     };
+
+    private String[] showInputValuesDialog(String[] valNames) {
+        int valCount = valNames.length;
+        String[] result = new String[valCount];
+        JTextField[] valFields = new JTextField[valCount];
+
+        JPanel dialogPane = new JPanel();
+        dialogPane.setLayout(new GridLayout(0, 2, 5, 5));
+        dialogPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        for (int i = 0; i < valCount; i++) {
+            dialogPane.add(new JLabel(valNames[i] + "        "));
+            valFields[i] = new JTextField("");
+            dialogPane.add(valFields[i]);
+        }
+
+        JOptionPane.showMessageDialog(frm, dialogPane, "", JOptionPane.QUESTION_MESSAGE);
+
+        for (int i = 0; i < valCount; i++) {
+            result[i] = valFields[i].getText();
+        }
+
+        return result;
+    }
 
 }

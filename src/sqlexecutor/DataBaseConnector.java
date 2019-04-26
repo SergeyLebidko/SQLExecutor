@@ -19,8 +19,12 @@ public class DataBaseConnector {
             statement = connection.createStatement();
     }
 
-    public ResultSet getResultSet(String SQLQuery) throws Exception{
+    public ResultSet executeQuery(String SQLQuery) throws Exception{
         return statement.executeQuery(SQLQuery);
+    }
+
+    public int updateQuery(String SQLQuery) throws  Exception{
+        return statement.executeUpdate(SQLQuery);
     }
 
 }
