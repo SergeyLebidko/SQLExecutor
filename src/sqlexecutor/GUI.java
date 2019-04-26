@@ -7,6 +7,8 @@ import javax.swing.border.EtchedBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 
 public class GUI {
 
@@ -130,64 +132,88 @@ public class GUI {
     private ActionListener insertRowBtnListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            String tableName = (String) tablesList.getSelectedItem();
-            String queryTemplate = "";
-            String[] valNames = null;
-            switch (tableName) {
+
+            //Формируем шаблон SQL-запроса
+            String tableName = "";                          //Название таблицы, в которую будем вставлять данные
+            String query = "INSERT INTO ";                  //SQL-запрос на добавление, который мы будем формировать
+            int columnCount = 0;                            //Количество стоблцов таблицы
+            String[] columnNames = null;                    //Массив имен столбцов таблицы
+            String[] columnClassNames = null;               //Массив имен классов столбцов таблицы
+            switch ((String) tablesList.getSelectedItem()) {
                 case "Покупатели": {
-                    queryTemplate="INSERT INTO CUSTOMERS VALUES (%s , '%s' , %s , %s )";
-                    valNames = new String[]{"cust_num (Integer)", "company (String)", "cust_rep (Integer)", "credit_limit (BigDecimal)"};
+                    tableName = "CUSTOMERS";
                     break;
                 }
                 case "Офисы": {
-                    queryTemplate="INSERT INTO OFFICES VALUES (%s , '%s' , '%s' , %s , %s , %s)";
-                    valNames = new String[]{"office (Integer)", "city (String)", "region (String)", "mgr (Integer)", "target (BigDecimal)", "sales (BigDecimal)"};
+                    tableName = "OFFICES";
                     break;
                 }
                 case "Заказы": {
-                    queryTemplate="INSERT INTO ORDERS VALUES (%s , '%s' , %s , %s , '%s' , '%s' , %s , %s)";
-                    valNames = new String[]{"order_num (Integer)", "order_date (Date)", "cust (Integer)", "rep (Integer)", "mfr (String)", "product (String)", "qty (Integer)", "amount (BigDecimal)"};
+                    tableName = "ORDERS";
                     break;
                 }
                 case "Товары": {
-                    queryTemplate="INSERT INTO PRODUCTS VALUES ('%s' , '%s' , '%s' , %s , %s)";
-                    valNames = new String[]{"mfr_id (String)", "product_id (String)", "description (String)", "price (BigDecimal)", "qty_on_hand (Integer)"};
+                    tableName = "PRODUCTS";
                     break;
                 }
                 case "Служащие": {
-                    queryTemplate="INSERT INTO PRODUCTS VALUES (%s , '%s' , %s , %s , '%s' , '%s' , %s , %s , %s)";
-                    valNames = new String[]{"empl_num (Integer)", "name (String)", "age (Integer)", "rep_office (Integer)", "title (String)", "hire_date (Date)", "manager (Integer)", "quota (BigDecimal)", "sales (BigDecimal)"};
+                    tableName = "SALESREPS";
                 }
+            }
+            query += tableName + " VALUES(";
+            try {
+                ResultSet resultSet = dataBaseConnector.executeQuery("SELECT * FROM " + tableName);
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                columnCount = metaData.getColumnCount();
+                columnNames = new String[columnCount];
+                columnClassNames = new String[columnCount];
+                for (int i = 0; i < columnCount; i++) {
+                    columnClassNames[i] = metaData.getColumnClassName(i + 1);
+                    columnNames[i] = metaData.getColumnName(i + 1) + ":   " + columnClassNames[i];
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frm, "Не удалось получить информацию о столбцах таблицы " + tableName + ". Ошибка: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
             //Выводим запрос
-            String[] vals = showInputValuesDialog(valNames);
+            String[] vals = showInputValuesDialog(columnNames, tableName);
 
             //Если все поля пусты, то просто выходим без выполнения запроса
-            boolean found=false;
-            for (String s: vals){
-                if (!s.equals("")){
-                    found=true;
+            boolean found = false;
+            for (String s : vals) {
+                if (!s.equals("")) {
+                    found = true;
                     break;
                 }
             }
-            if (!found)return;
+            if (!found) return;
 
             //Проигнорированные пользователем поля считаем равными NULL
-            for (int i=0;i<vals.length;i++){
-                if (vals[i].equals("")){
-                    vals[i]="NULL";
+            for (int i = 0; i < columnCount; i++) {
+                if (vals[i].equals("")) {
+                    vals[i] = "NULL";
                 }
             }
 
-            //Формируем SQL-код запроса
-            String query = String.format(queryTemplate, vals);
+            //Вводим в текст запроса значения, введенные пользователем
+            for (int i = 0; i < columnCount; i++) {
+                if (columnClassNames[i].equals(String.class.getName()) || columnClassNames[i].equals(java.sql.Date.class.getName())) {
+                    query += "'" + vals[i] + "'";
+                } else {
+                    query += vals[i];
+                }
+                if (i < (columnCount - 1)) {
+                    query += " , ";
+                }
+            }
+            query += ")";
 
             //Выполняем запрос
             try {
                 dataBaseConnector.updateQuery(query);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frm, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(frm, "Не удалось добавить строку. Ошибка: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
                 return;
             }
         }
@@ -246,7 +272,7 @@ public class GUI {
         }
     };
 
-    private String[] showInputValuesDialog(String[] valNames) {
+    private String[] showInputValuesDialog(String[] valNames, String title) {
         int valCount = valNames.length;
         String[] result = new String[valCount];
         JTextField[] valFields = new JTextField[valCount];
@@ -261,10 +287,15 @@ public class GUI {
             dialogPane.add(valFields[i]);
         }
 
-        JOptionPane.showMessageDialog(frm, dialogPane, "", JOptionPane.QUESTION_MESSAGE);
+        int answer = JOptionPane.showConfirmDialog(frm, dialogPane, title, JOptionPane.OK_CANCEL_OPTION);
+        System.out.println(answer);
 
         for (int i = 0; i < valCount; i++) {
-            result[i] = valFields[i].getText();
+            if (answer == 0) {
+                result[i] = valFields[i].getText();
+            } else {
+                result[i] = "";
+            }
         }
 
         return result;
