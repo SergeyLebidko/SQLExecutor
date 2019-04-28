@@ -8,7 +8,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 
 public class GUI {
 
@@ -34,9 +33,6 @@ public class GUI {
     private JButton showProducts;
     private JButton showSalesreps;
 
-    private JButton insertRowBtn;
-    private JComboBox<String> tablesList;
-
     public GUI() {
         frm = new JFrame("SQLExecutor");
         frm.setIconImage(new ImageIcon("res\\logo.png").getImage());
@@ -59,7 +55,7 @@ public class GUI {
             contentPane.setLayout(new BorderLayout(5, 5));
             contentPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
             sqlQueryArea = new JTextArea();
-            executeQueryBtn = new JButton("Выполнить запрос на получение данных");
+            executeQueryBtn = new JButton("Выполнить");
             sqlQueryArea.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
             JPanel topPane = new JPanel();
             topPane.setLayout(new BorderLayout(5, 5));
@@ -93,14 +89,6 @@ public class GUI {
             toolBar.add(showSalesreps);
             toolBar.addSeparator();
 
-            insertRowBtn = new JButton("Добавить строку в таблицу");
-            tablesList = new JComboBox<>(new String[]{"Покупатели", "Офисы", "Заказы", "Товары", "Служащие"});
-            toolBar.add(insertRowBtn);
-            toolBar.add(Box.createHorizontalStrut(1));
-            toolBar.add(tablesList);
-
-            toolBar.add(Box.createHorizontalStrut(800));
-
             topPane.add(toolBar, BorderLayout.NORTH);
 
             //Формируем главную таблицу
@@ -116,8 +104,6 @@ public class GUI {
         showProducts.addActionListener(showBtnListener);
         showSalesreps.addActionListener(showBtnListener);
 
-        insertRowBtn.addActionListener(insertRowBtnListener);
-
         frm.setContentPane(contentPane);
         frm.setVisible(true);
     }
@@ -125,91 +111,24 @@ public class GUI {
     private ActionListener executeQueryBtnListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            mainTable.executeQuery(sqlQueryArea.getText());
-        }
-    };
+            String query = sqlQueryArea.getText();
+            query = query.trim();
+            if (query.equals("")) return;
 
-    private ActionListener insertRowBtnListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
+            String firtsWord = query.split(" ")[0];
+            firtsWord = firtsWord.toLowerCase();
 
-            //Формируем шаблон SQL-запроса
-            String tableName = "";                          //Название таблицы, в которую будем вставлять данные
-            String query = "INSERT INTO ";                  //SQL-запрос на добавление, который мы будем формировать
-            int columnCount = 0;                            //Количество стоблцов таблицы
-            String[] columnNames = null;                    //Массив имен столбцов таблицы
-            String[] columnClassNames = null;               //Массив имен классов столбцов таблицы
-            switch ((String) tablesList.getSelectedItem()) {
-                case "Покупатели": {
-                    tableName = "CUSTOMERS";
-                    break;
-                }
-                case "Офисы": {
-                    tableName = "OFFICES";
-                    break;
-                }
-                case "Заказы": {
-                    tableName = "ORDERS";
-                    break;
-                }
-                case "Товары": {
-                    tableName = "PRODUCTS";
-                    break;
-                }
-                case "Служащие": {
-                    tableName = "SALESREPS";
-                }
-            }
-            query += tableName + " VALUES(";
+            ResultSet resultSet;
             try {
-                ResultSet resultSet = dataBaseConnector.executeQuery("SELECT * FROM " + tableName);
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                columnCount = metaData.getColumnCount();
-                columnNames = new String[columnCount];
-                columnClassNames = new String[columnCount];
-                for (int i = 0; i < columnCount; i++) {
-                    columnClassNames[i] = metaData.getColumnClassName(i + 1);
-                    columnNames[i] = metaData.getColumnName(i + 1) + ":   " + columnClassNames[i];
+                if (firtsWord.equals("select")){
+                    resultSet = dataBaseConnector.executeQuery(query);
+                    mainTable.setContent(resultSet);
+                    return;
                 }
+                int rowsCount = dataBaseConnector.updateQuery(query);
+                JOptionPane.showMessageDialog(frm, "Запрос выполнен. Затронуто строк: "+rowsCount, "", JOptionPane.INFORMATION_MESSAGE);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frm, "Не удалось получить информацию о столбцах таблицы " + tableName + ": " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            //Выводим запрос
-            String[] vals = null;
-            try {
-                vals = showInputValuesDialog(columnNames, tableName);
-            } catch (Exception ex) {
-                return;
-            }
-
-            //Проигнорированные пользователем поля считаем равными NULL
-            for (int i = 0; i < columnCount; i++) {
-                if (vals[i].equals("")) {
-                    vals[i] = "NULL";
-                }
-            }
-
-            //Вводим в текст запроса значения, введенные пользователем
-            for (int i = 0; i < columnCount; i++) {
-                if (columnClassNames[i].equals(String.class.getName()) || columnClassNames[i].equals(java.sql.Date.class.getName())) {
-                    query += "'" + vals[i] + "'";
-                } else {
-                    query += vals[i];
-                }
-                if (i < (columnCount - 1)) {
-                    query += " , ";
-                }
-            }
-            query += ")";
-
-            //Выполняем запрос
-            try {
-                dataBaseConnector.updateQuery(query);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frm, "Не удалось добавить строку: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
-                return;
+                JOptionPane.showMessageDialog(frm, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
             }
         }
     };
@@ -217,7 +136,6 @@ public class GUI {
     private ActionListener showBtnListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            JDialog dialog = new JDialog(frm, false);
             String title = "";
             String query = "";
             switch (((JButton) e.getSource()).getText()) {
@@ -247,6 +165,16 @@ public class GUI {
                 }
             }
 
+            ResultTable dialogTable = new ResultTable(dataBaseConnector);
+            try {
+                ResultSet resultSet = dataBaseConnector.executeQuery(query);
+                dialogTable.setContent(resultSet);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frm, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            JDialog dialog = new JDialog(frm, false);
             dialog.setTitle(title);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setSize(new Dimension(WIDTH_DIALOG, HEIGHT_DIALOG));
@@ -258,38 +186,10 @@ public class GUI {
             dialogPane.setLayout(new BorderLayout(5, 5));
             dialogPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-            ResultTable dialogTable = new ResultTable(dataBaseConnector);
-            dialogTable.executeQuery(query);
             dialogPane.add(dialogTable.getContentPane(), BorderLayout.CENTER);
-
             dialog.add(dialogPane, BorderLayout.CENTER);
             dialog.setVisible(true);
         }
     };
-
-    private String[] showInputValuesDialog(String[] valNames, String title) throws Exception {
-        int valCount = valNames.length;
-        String[] result = new String[valCount];
-        JTextField[] valFields = new JTextField[valCount];
-
-        JPanel dialogPane = new JPanel();
-        dialogPane.setLayout(new GridLayout(0, 2, 5, 5));
-        dialogPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        for (int i = 0; i < valCount; i++) {
-            dialogPane.add(new JLabel(valNames[i] + "        "));
-            valFields[i] = new JTextField("");
-            dialogPane.add(valFields[i]);
-        }
-
-        int answer = JOptionPane.showConfirmDialog(frm, dialogPane, title, JOptionPane.OK_CANCEL_OPTION);
-        if (answer != 0) throw new Exception();
-
-        for (int i = 0; i < valCount; i++) {
-            result[i] = valFields[i].getText();
-        }
-
-        return result;
-    }
 
 }

@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 
 public class ResultTable {
@@ -18,8 +19,6 @@ public class ResultTable {
     private TableModel tableModel;
     private JLabel statusLab;
     private JButton refreshBtn;
-
-    private String lastQuery;
 
     public ResultTable(DataBaseConnector dataBaseConnector) {
         this.dataBaseConnector = dataBaseConnector;
@@ -34,34 +33,19 @@ public class ResultTable {
         table.getTableHeader().setDefaultRenderer(new TableHeaderRenderer());
         statusLab = new JLabel();
 
-        Box topBox = Box.createHorizontalBox();
-        refreshBtn = new JButton("Обновить");
-        topBox.add(refreshBtn);
-        topBox.add(Box.createHorizontalGlue());
-        contentPane.add(topBox, BorderLayout.NORTH);
         contentPane.add(new JScrollPane(table), BorderLayout.CENTER);
         Box bottomBox = Box.createHorizontalBox();
         bottomBox.add(statusLab);
         bottomBox.add(Box.createHorizontalGlue());
         contentPane.add(bottomBox, BorderLayout.SOUTH);
-
-        refreshBtn.addActionListener(refreshBtnListener);
     }
 
     public JPanel getContentPane() {
         return contentPane;
     }
 
-    public void executeQuery(String query) {
-        ResultSet resultSet;
-        try {
-            resultSet = dataBaseConnector.executeQuery(query);
-            tableModel.refresh(resultSet);
-            lastQuery = query;
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(contentPane, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+    public void setContent(ResultSet resultSet) throws SQLException {
+        tableModel.refresh(resultSet);
         updateStatusLab();
     }
 
@@ -72,12 +56,5 @@ public class ResultTable {
         statusLab.setText(status);
     }
 
-    private ActionListener refreshBtnListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            if (lastQuery == null) return;
-            executeQuery(lastQuery);
-        }
-    };
 
 }
